@@ -1,3 +1,4 @@
+// E2E tests for saucedemo.com - trigger CI run
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = 'https://www.saucedemo.com';
