@@ -1,0 +1,213 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: saucedemo.spec.ts >> SauceDemo E-Commerce Tests >> TC08 - Sort products by price high to low
+- Location: tests\saucedemo.spec.ts:116:7
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Error: page.click: Test timeout of 30000ms exceeded.
+Call log:
+  - waiting for locator('#login-button')
+    - locator resolved to <input type="submit" value="Login" id="login-button" name="login-button" data-test="login-button" class="submit-button btn_action"/>
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]: Swag Labs
+  - generic [ref=e5]:
+    - generic [ref=e9]:
+      - textbox "Username" [ref=e11]: standard_user
+      - textbox "Password" [active] [ref=e13]: secret_sauce
+      - button "Login" [ref=e15] [cursor=pointer]
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - heading "Accepted usernames are:" [level=4] [ref=e19]
+        - text: standard_user
+        - text: locked_out_user
+        - text: problem_user
+        - text: performance_glitch_user
+        - text: error_user
+        - text: visual_user
+      - generic [ref=e20]:
+        - heading "Password for all users:" [level=4] [ref=e21]
+        - text: secret_sauce
+```
+
+# Test source
+
+```ts
+  20  | 
+  21  |   test('TC02 - Login fails with wrong password shows error', async ({ page }) => {
+  22  |     await page.goto(BASE_URL);
+  23  | 
+  24  |     await page.fill('#user-name', VALID_USER);
+  25  |     await page.fill('#password', 'wrong_password');
+  26  |     await page.click('#login-button');
+  27  | 
+  28  |     const errorMessage = page.locator('[data-test="error"]');
+  29  |     await expect(errorMessage).toBeVisible();
+  30  |     await expect(errorMessage).toContainText('Username and password do not match');
+  31  |   });
+  32  | 
+  33  |   test('TC03 - Add a product to the cart', async ({ page }) => {
+  34  |     await page.goto(BASE_URL);
+  35  |     await page.fill('#user-name', VALID_USER);
+  36  |     await page.fill('#password', VALID_PASS);
+  37  |     await page.click('#login-button');
+  38  | 
+  39  |     await page.click('[data-test="add-to-cart-sauce-labs-backpack"]');
+  40  | 
+  41  |     const cartBadge = page.locator('.shopping_cart_badge');
+  42  |     await expect(cartBadge).toHaveText('1');
+  43  | 
+  44  |     await page.click('.shopping_cart_link');
+  45  |     await expect(page).toHaveURL(`${BASE_URL}/cart.html`);
+  46  |     await expect(page.locator('.inventory_item_name')).toHaveText('Sauce Labs Backpack');
+  47  |   });
+  48  | 
+  49  |   test('TC04 - Sort products by price low to high', async ({ page }) => {
+  50  |     await page.goto(BASE_URL);
+  51  |     await page.fill('#user-name', VALID_USER);
+  52  |     await page.fill('#password', VALID_PASS);
+  53  |     await page.click('#login-button');
+  54  | 
+  55  |     await page.selectOption('[data-test="product-sort-container"]', 'lohi');
+  56  | 
+  57  |     const prices = await page.locator('.inventory_item_price').allTextContents();
+  58  |     const numericPrices = prices.map(p => parseFloat(p.replace('$', '')));
+  59  | 
+  60  |     for (let i = 0; i < numericPrices.length - 1; i++) {
+  61  |       expect(numericPrices[i]).toBeLessThanOrEqual(numericPrices[i + 1]);
+  62  |     }
+  63  |   });
+  64  | 
+  65  |   test('TC05 - Complete full checkout flow', async ({ page }) => {
+  66  |     await page.goto(BASE_URL);
+  67  |     await page.fill('#user-name', VALID_USER);
+  68  |     await page.fill('#password', VALID_PASS);
+  69  |     await page.click('#login-button');
+  70  | 
+  71  |     await page.click('[data-test="add-to-cart-sauce-labs-bike-light"]');
+  72  |     await page.click('.shopping_cart_link');
+  73  |     await page.click('[data-test="checkout"]');
+  74  | 
+  75  |     await expect(page).toHaveURL(`${BASE_URL}/checkout-step-one.html`);
+  76  |     await page.fill('[data-test="firstName"]', 'Test');
+  77  |     await page.fill('[data-test="lastName"]', 'User');
+  78  |     await page.fill('[data-test="postalCode"]', '12345');
+  79  |     await page.click('[data-test="continue"]');
+  80  | 
+  81  |     await expect(page).toHaveURL(`${BASE_URL}/checkout-step-two.html`);
+  82  |     await expect(page.locator('.summary_info')).toBeVisible();
+  83  | 
+  84  |     await page.click('[data-test="finish"]');
+  85  |     await expect(page).toHaveURL(`${BASE_URL}/checkout-complete.html`);
+  86  |     await expect(page.locator('.complete-header')).toHaveText('Thank you for your order!');
+  87  |   });
+  88  | 
+  89  |   test('TC06 - Logout redirects to login page', async ({ page }) => {
+  90  |     await page.goto(BASE_URL);
+  91  |     await page.fill('#user-name', VALID_USER);
+  92  |     await page.fill('#password', VALID_PASS);
+  93  |     await page.click('#login-button');
+  94  | 
+  95  |     await page.click('#react-burger-menu-btn');
+  96  |     await page.click('#logout_sidebar_link');
+  97  | 
+  98  |     await expect(page).toHaveURL(BASE_URL + '/');
+  99  |     await expect(page.locator('#login-button')).toBeVisible();
+  100 |   });
+  101 | 
+  102 |   test('TC07 - Remove item from cart clears cart badge', async ({ page }) => {
+  103 |     await page.goto(BASE_URL);
+  104 |     await page.fill('#user-name', VALID_USER);
+  105 |     await page.fill('#password', VALID_PASS);
+  106 |     await page.click('#login-button');
+  107 | 
+  108 |     await page.click('[data-test="add-to-cart-sauce-labs-backpack"]');
+  109 |     await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
+  110 | 
+  111 |     await page.click('[data-test="remove-sauce-labs-backpack"]');
+  112 | 
+  113 |     await expect(page.locator('.shopping_cart_badge')).not.toBeVisible();
+  114 |   });
+  115 | 
+  116 |   test('TC08 - Sort products by price high to low', async ({ page }) => {
+  117 |     await page.goto(BASE_URL);
+  118 |     await page.fill('#user-name', VALID_USER);
+  119 |     await page.fill('#password', VALID_PASS);
+> 120 |     await page.click('#login-button');
+      |                ^ Error: page.click: Test timeout of 30000ms exceeded.
+  121 | 
+  122 |     await page.selectOption('[data-test="product-sort-container"]', 'hilo');
+  123 | 
+  124 |     const prices = await page.locator('.inventory_item_price').allTextContents();
+  125 |     const numericPrices = prices.map(p => parseFloat(p.replace('$', '')));
+  126 | 
+  127 |     for (let i = 0; i < numericPrices.length - 1; i++) {
+  128 |       expect(numericPrices[i]).toBeGreaterThanOrEqual(numericPrices[i + 1]);
+  129 |     }
+  130 |   });
+  131 | 
+  132 |   test('TC09 - Sort products alphabetically A to Z', async ({ page }) => {
+  133 |     await page.goto(BASE_URL);
+  134 |     await page.fill('#user-name', VALID_USER);
+  135 |     await page.fill('#password', VALID_PASS);
+  136 |     await page.click('#login-button');
+  137 | 
+  138 |     await page.selectOption('[data-test="product-sort-container"]', 'az');
+  139 | 
+  140 |     const names = await page.locator('.inventory_item_name').allTextContents();
+  141 |     const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  142 | 
+  143 |     expect(names).toEqual(sorted);
+  144 |   });
+  145 | 
+  146 |   test('TC10 - Sort products alphabetically Z to A', async ({ page }) => {
+  147 |     await page.goto(BASE_URL);
+  148 |     await page.fill('#user-name', VALID_USER);
+  149 |     await page.fill('#password', VALID_PASS);
+  150 |     await page.click('#login-button');
+  151 | 
+  152 |     await page.selectOption('[data-test="product-sort-container"]', 'za');
+  153 | 
+  154 |     const names = await page.locator('.inventory_item_name').allTextContents();
+  155 |     const sorted = [...names].sort((a, b) => b.localeCompare(a));
+  156 | 
+  157 |     expect(names).toEqual(sorted);
+  158 |   });
+  159 | 
+  160 |   test('TC11 - Product detail page shows correct info', async ({ page }) => {
+  161 |     await page.goto(BASE_URL);
+  162 |     await page.fill('#user-name', VALID_USER);
+  163 |     await page.fill('#password', VALID_PASS);
+  164 |     await page.click('#login-button');
+  165 | 
+  166 |     await page.click('.inventory_item_name >> nth=0');
+  167 | 
+  168 |     await expect(page).toHaveURL(/inventory-item\.html/);
+  169 |     await expect(page.locator('.inventory_details_name')).toBeVisible();
+  170 |     await expect(page.locator('.inventory_details_price')).toBeVisible();
+  171 |     await expect(page.locator('.inventory_details_desc')).toBeVisible();
+  172 |     await expect(page.locator('[data-test^="add-to-cart"]')).toBeVisible();
+  173 |   });
+  174 | 
+  175 | });
+  176 | 
+```

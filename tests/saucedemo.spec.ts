@@ -86,4 +86,90 @@ test.describe('SauceDemo E-Commerce Tests', () => {
     await expect(page.locator('.complete-header')).toHaveText('Thank you for your order!');
   });
 
+  test('TC06 - Logout redirects to login page', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.click('#react-burger-menu-btn');
+    await page.click('#logout_sidebar_link');
+
+    await expect(page).toHaveURL(BASE_URL + '/');
+    await expect(page.locator('#login-button')).toBeVisible();
+  });
+
+  test('TC07 - Remove item from cart clears cart badge', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.click('[data-test="add-to-cart-sauce-labs-backpack"]');
+    await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
+
+    await page.click('[data-test="remove-sauce-labs-backpack"]');
+
+    await expect(page.locator('.shopping_cart_badge')).not.toBeVisible();
+  });
+
+  test('TC08 - Sort products by price high to low', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.selectOption('[data-test="product-sort-container"]', 'hilo');
+
+    const prices = await page.locator('.inventory_item_price').allTextContents();
+    const numericPrices = prices.map(p => parseFloat(p.replace('$', '')));
+
+    for (let i = 0; i < numericPrices.length - 1; i++) {
+      expect(numericPrices[i]).toBeGreaterThanOrEqual(numericPrices[i + 1]);
+    }
+  });
+
+  test('TC09 - Sort products alphabetically A to Z', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.selectOption('[data-test="product-sort-container"]', 'az');
+
+    const names = await page.locator('.inventory_item_name').allTextContents();
+    const sorted = [...names].sort((a, b) => a.localeCompare(b));
+
+    expect(names).toEqual(sorted);
+  });
+
+  test('TC10 - Sort products alphabetically Z to A', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.selectOption('[data-test="product-sort-container"]', 'za');
+
+    const names = await page.locator('.inventory_item_name').allTextContents();
+    const sorted = [...names].sort((a, b) => b.localeCompare(a));
+
+    expect(names).toEqual(sorted);
+  });
+
+  test('TC11 - Product detail page shows correct info', async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.fill('#user-name', VALID_USER);
+    await page.fill('#password', VALID_PASS);
+    await page.click('#login-button');
+
+    await page.click('.inventory_item_name >> nth=0');
+
+    await expect(page).toHaveURL(/inventory-item\.html/);
+    await expect(page.locator('.inventory_details_name')).toBeVisible();
+    await expect(page.locator('.inventory_details_price')).toBeVisible();
+    await expect(page.locator('.inventory_details_desc')).toBeVisible();
+    await expect(page.locator('[data-test^="add-to-cart"]')).toBeVisible();
+  });
+
 });

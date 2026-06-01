@@ -35,6 +35,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    launchOptions: {
+      slowMo: parseInt(process.env.SLOW_MO || '0'),
+    },
   },
 
   /* Configure projects for major browsers */
